@@ -1,0 +1,75 @@
+---
+title: "predmachlearn-012_project_write-up"
+author: "Hung-Ju Chen"
+output: html_document
+---
+A. Introduction
+
+Human activity recognition research has traditionally focused on discriminating between different activities. However, the "how (well)" investigation has only received little attention so far, even though it potentially provides useful information for a large variety of applications,such as sports training (http://groupware.les.inf.puc-rio.br/har).
+
+For the prediction of how welll individuals performed the assigned exercise six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: exactly according to the specification (Class A), throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D) and throwing the hips to the front (Class E).
+
+This report aims to use machine learning algoritmhs to predict the class of exercise the individuals was performing by using meaurements available from devices such as Jawbone Up, Nike FuelBand, and Fitbit.
+
+B. Load Data and Package
+
+The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. The information has been generously provided for use use in this cousera course by the authors, Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. They have allowed the use of their paper "Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.
+
+```{r}
+# Libraries needed for the whole study
+library(ggplot2)
+library(caret)
+library(dplyr)
+library(randomForest)
+library(Hmisc)
+library(foreach)
+library(doParallel)
+
+setwd("C:/Users/CheHu002/Documents/GitHub/predmachlearn-012_Project")
+training.df<-read.csv("pml-training.csv", na.strings=c("NA","#DIV/0!", ""))
+training.df<-training.df[,colSums(is.na(training.df)) == 0]
+training.df<-training.df[,-c(1:7)]
+training.df<-training.df[,colSums(is.na(training.df)) == 0]
+training.df<-training.df[,-c(1:7)]
+```
+
+C. Creating training set and test set
+
+After getting the clean data by leaving out the fields with "NA" and unnecessary factors, I just use the following code to split the data into training and testing data set. 
+
+```{r}
+inTraining.matrix    <- createDataPartition(training.df$classe, p = 0.75, list = FALSE)
+training.data.df <- training.df[inTraining.matrix, ]
+testing.data.df  <- training.df[-inTraining.matrix, ]
+```
+
+D. Build the model with randon forest method
+
+In this case, we need to forecast the classes of the test file by using our model, so the factor of classe should be our outcome and the other remaining variables should be used for predicting the classe outcome. Based on the course instruction, I used 4-fold cross-validation to build the model. 
+
+```{r}
+tc = trainControl(method = "cv", number = 4)
+modFit <- train(classe ~.,data = training.data.df,method="rf", trControl = tc)
+```
+
+E. Confusion Matrix
+
+After fitting the model, firstly we predict and generate the Accuracy and confusion matrix for the training set (75% of the training raw data) and test set (the remaining 25% training raw data). To evaluate the performance of the model, I use the confusionmatrix method to see the accuracy, sensitivity and specificity metrics by evaluating training and testing data.
+
+
+```{r}
+training.predictions <- predict(modFit, newdata=training.data.df)
+confusionMatrix(training.predictions,training.data.df$classe)
+```
+
+
+```{r}
+testing.predictions <- predict(modFit, newdata=testing.data.df)
+confusionMatrix(testing.predictions,testing.data.df$classe)
+```
+
+For the result of the confusionmatrix, the model is quiet good and efficient with great accuracy and very good sensitivity & specificity values on the testing dataset. 
+
+Finally I use the test raw data to do the project submission and get 20/20 high prediction performance. 
+
+
